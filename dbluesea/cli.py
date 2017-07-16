@@ -41,10 +41,10 @@ def list():
         account_key=config.STORAGE_ACCOUNT_KEY
     )
 
-    containers = block_blob_service.list_containers()
+    containers = block_blob_service.list_containers(include_metadata=True)
 
     for c in containers:
-        print(c.name)
+        print(' '.join((c.name, c.metadata['name'])))
 
 
 @cli.command()
@@ -57,7 +57,11 @@ def put(dataset_path):
         account_key=config.STORAGE_ACCOUNT_KEY
     )
 
-    ret = block_blob_service.create_container(dataset.uuid)
+    block_blob_service.create_container(dataset.uuid)
+    block_blob_service.set_container_metadata(
+        dataset.uuid,
+        dataset._admin_metadata
+    )
 
     block_blob_service.create_blob_from_text(
         dataset.uuid,
