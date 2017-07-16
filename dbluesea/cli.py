@@ -35,6 +35,11 @@ def cli():
 
 
 @cli.command()
+def avail():
+    pass
+
+
+@cli.command()
 @click.argument('dataset_path', type=click.Path(exists=True))
 def put(dataset_path):
     dataset = DataSet.from_path(dataset_path)
@@ -48,20 +53,36 @@ def put(dataset_path):
 
     block_blob_service.create_blob_from_text(
         dataset.uuid,
+        'dtool',
+        json.dumps(dataset._admin_metadata))
+
+    block_blob_service.create_blob_from_text(
+        dataset.uuid,
         'manifest',
         json.dumps(dataset.manifest)
     )
 
+    block_blob_service.create_blob_from_path(
+        dataset.uuid,
+        'README.yml',
+        dataset.abs_readme_path
+    )
+
     for identifier in dataset.identifiers:
-        block_blob_service.create_blob_from_path(
-            dataset.uuid,
-            identifier,
-            dataset.abspath_from_identifier(identifier)
-        )
+        if not block_blob_service.exists(dataset.uuid, identifier):
+            block_blob_service.create_blob_from_path(
+                dataset.uuid,
+                identifier,
+                dataset.abspath_from_identifier(identifier)
+            )
 
 
 @cli.command()
-def show(uuid="4b4f06cc-72b9-4487-803f-6c5ac269af5e"):
+@click.argument(
+    "uuid",
+    default="4b4f06cc-72b9-4487-803f-6c5ac269af5e"
+)
+def show(uuid):
 
     block_blob_service = BlockBlobService(
         account_name=config.STORAGE_ACCOUNT_NAME,
@@ -74,28 +95,70 @@ def show(uuid="4b4f06cc-72b9-4487-803f-6c5ac269af5e"):
 
 
 @cli.command()
-def get(uuid="4b4f06cc-72b9-4487-803f-6c5ac269af5e"):
+@click.argument(
+    "uuid",
+    default="4b4f06cc-72b9-4487-803f-6c5ac269af5e"
+)
+def get(uuid):
 
     block_blob_service = BlockBlobService(
         account_name=config.STORAGE_ACCOUNT_NAME,
         account_key=config.STORAGE_ACCOUNT_KEY
     )
 
+    dtool_file_blob = block_blob_service.get_blob_to_text(
+        uuid,
+        'dtool'
+    )
+
+    admin_metadata = json.loads(dtool_file_blob.content)
+
+    dataset_name = admin_metadata['name']
+
+    dataset_root_path = dataset_name
+    dtool_dir_path = os.path.join(dataset_root_path, '.dtool')
+    mkdir_parents(dtool_dir_path)
+
+    dtool_file_path = os.path.join(dtool_dir_path, 'dtool')
+    with open(dtool_file_path, 'w') as fh:
+        fh.write(dtool_file_blob.content)
+
     manifest_blob = block_blob_service.get_blob_to_text(
         uuid,
         'manifest'
     )
+    manifest_file_path = os.path.join(
+        dataset_root_path,
+        admin_metadata['manifest_path']
+    )
+    with open(manifest_file_path, 'w') as fh:
+        fh.write(manifest_blob.content)
 
     manifest = json.loads(manifest_blob.content)
 
+    manifest_root_path = os.path.join(
+        dataset_root_path,
+        admin_metadata['manifest_root']
+    )
+
     for item in manifest['file_list']:
-        path, basename = os.path.split(item['path'])
+        dest_full_path = os.path.join(manifest_root_path, item['path'])
 
-        if len(path):
-            mkdir_parents(path)
+        if not os.path.exists(dest_full_path):
 
-        block_blob_service.get_blob_to_path(
-            uuid,
-            item['hash'],
-            item['path']
-        )
+            dest_path, dest_filename = os.path.split(dest_full_path)
+
+            if len(dest_path):
+                mkdir_parents(dest_path)
+
+            block_blob_service.get_blob_to_path(
+                uuid,
+                item['hash'],
+                dest_full_path
+            )
+
+    block_blob_service.get_blob_to_path(
+        uuid,
+        'README.yml',
+        os.path.join(dataset_root_path, admin_metadata['readme_path'])
+    )
