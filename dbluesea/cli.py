@@ -35,8 +35,16 @@ def cli():
 
 
 @cli.command()
-def avail():
-    pass
+def list():
+    block_blob_service = BlockBlobService(
+        account_name=config.STORAGE_ACCOUNT_NAME,
+        account_key=config.STORAGE_ACCOUNT_KEY
+    )
+
+    containers = block_blob_service.list_containers()
+
+    for c in containers:
+        print(c.name)
 
 
 @cli.command()
