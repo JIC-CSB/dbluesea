@@ -10,7 +10,7 @@ from dtoolcore import DataSet
 
 from azure.storage.blob import BlockBlobService
 
-import config
+import dbluesea.config as config
 
 
 def mkdir_parents(path):
