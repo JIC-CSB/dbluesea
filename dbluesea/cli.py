@@ -66,6 +66,32 @@ def list():
 
 @cli.command()
 @click.argument('dataset_path', type=click.Path(exists=True))
+def putoverlays(dataset_path):
+
+    block_blob_service = BlockBlobService(
+        account_name=config.STORAGE_ACCOUNT_NAME,
+        account_key=config.STORAGE_ACCOUNT_KEY
+    )
+
+    dataset = DataSet.from_path(dataset_path)
+
+    overlays_abspath = os.path.join(
+        dataset._abs_path,
+        dataset._admin_metadata["overlays_path"]
+    )
+
+    for overlay_file in os.listdir(overlays_abspath):
+        overlay_abspath = os.path.join(overlays_abspath, overlay_file)
+
+        block_blob_service.create_blob_from_path(
+            dataset.uuid,
+            overlay_file,
+            overlay_abspath
+        )
+
+
+@cli.command()
+@click.argument('dataset_path', type=click.Path(exists=True))
 def put(dataset_path):
     dataset = DataSet.from_path(dataset_path)
 
