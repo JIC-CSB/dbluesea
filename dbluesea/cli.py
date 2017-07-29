@@ -11,6 +11,7 @@ from dtoolcore import DataSet
 from azure.storage.blob import BlockBlobService
 
 import dbluesea.config as config
+from dbluesea import AzureDataSet
 
 
 def mkdir_parents(path):
@@ -32,6 +33,22 @@ def mkdir_parents(path):
 @click.group()
 def cli():
     pass
+
+
+@cli.command()
+@click.argument(
+    "uuid",
+    default="4b4f06cc-72b9-4487-803f-6c5ac269af5e"
+)
+def dev(uuid):
+
+    print("working with {}".format(uuid))
+
+    dataset = AzureDataSet.from_uuid(uuid)
+
+    first_id = dataset.identifiers[1]
+
+    print(dataset.abspath_from_identifier(first_id))
 
 
 @cli.command()
