@@ -36,19 +36,19 @@ def cli():
 
 
 @cli.command()
-@click.argument(
-    "uuid",
-    default="4b4f06cc-72b9-4487-803f-6c5ac269af5e"
-)
-def dev(uuid):
+@click.argument('name')
+def new(name):
+    dataset = AzureDataSet(name)
+    dataset.persist_to_azure()
+    print(dataset.uuid)
 
-    print("working with {}".format(uuid))
 
+@cli.command()
+@click.argument('uuid')
+def update(uuid):
     dataset = AzureDataSet.from_uuid(uuid)
-
-    first_id = dataset.identifiers[1]
-
-    print(dataset.abspath_from_identifier(first_id))
+    print('Updating: {}'.format(uuid))
+    dataset.update_manifest()
 
 
 @cli.command()
@@ -144,9 +144,15 @@ def show(uuid):
         account_key=config.STORAGE_ACCOUNT_KEY
     )
 
-    generator = block_blob_service.list_blobs(uuid)
+    generator = block_blob_service.list_blobs(uuid, include='metadata')
     for blob in generator:
-        print(blob.name)
+        metadata = blob.metadata
+        if 'path' in metadata:
+            path = metadata['path']
+        else:
+            path = ""
+
+        print("{} {}".format(blob.name, path))
 
 
 @cli.command()
@@ -161,12 +167,7 @@ def get(uuid):
         account_key=config.STORAGE_ACCOUNT_KEY
     )
 
-    dtool_file_blob = block_blob_service.get_blob_to_text(
-        uuid,
-        'dtool'
-    )
-
-    admin_metadata = json.loads(dtool_file_blob.content)
+    admin_metadata = block_blob_service.get_container_metadata(uuid)
 
     dataset_name = admin_metadata['name']
 
@@ -176,7 +177,7 @@ def get(uuid):
 
     dtool_file_path = os.path.join(dtool_dir_path, 'dtool')
     with open(dtool_file_path, 'w') as fh:
-        fh.write(dtool_file_blob.content)
+        fh.write(json.dumps(admin_metadata))
 
     manifest_blob = block_blob_service.get_blob_to_text(
         uuid,
