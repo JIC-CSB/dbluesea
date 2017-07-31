@@ -135,65 +135,32 @@ def show(uuid):
 
 
 @cli.command()
-@click.argument(
-    "uuid",
-    default="4b4f06cc-72b9-4487-803f-6c5ac269af5e"
-)
+@click.argument("uuid")
 def get(uuid):
 
-    block_blob_service = BlockBlobService(
-        account_name=config.STORAGE_ACCOUNT_NAME,
-        account_key=config.STORAGE_ACCOUNT_KEY
-    )
+    dataset = AzureDataSet.from_uuid(uuid)
 
-    admin_metadata = block_blob_service.get_container_metadata(uuid)
+    local_dataset = DataSet(dataset.name)
+    local_dataset._admin_metadata = dataset._admin_metadata
+    local_dest_path = dataset.name
+    os.mkdir(local_dest_path)
+    local_dataset.persist_to_path(local_dest_path)
 
-    dataset_name = admin_metadata['name']
+    with open(local_dataset.abs_readme_path, 'w') as fh:
+        fh.write(dataset.readme)
 
-    dataset_root_path = dataset_name
-    dtool_dir_path = os.path.join(dataset_root_path, '.dtool')
-    mkdir_parents(dtool_dir_path)
+    for identifier in dataset.identifiers:
+        path = dataset.item_from_identifier(identifier)['path']
+        dest_abspath = os.path.join(
+            local_dest_path,
+            local_dataset.data_directory,
+            path
+        )
+        dest_path, dest_filename = os.path.split(dest_abspath)
 
-    dtool_file_path = os.path.join(dtool_dir_path, 'dtool')
-    with open(dtool_file_path, 'w') as fh:
-        fh.write(json.dumps(admin_metadata))
+        if len(dest_path):
+            mkdir_parents(dest_path)
 
-    manifest_blob = block_blob_service.get_blob_to_text(
-        uuid,
-        'manifest'
-    )
-    manifest_file_path = os.path.join(
-        dataset_root_path,
-        admin_metadata['manifest_path']
-    )
-    with open(manifest_file_path, 'w') as fh:
-        fh.write(manifest_blob.content)
+        dataset.stage_to_local_path(identifier, dest_abspath)
 
-    manifest = json.loads(manifest_blob.content)
-
-    manifest_root_path = os.path.join(
-        dataset_root_path,
-        admin_metadata['manifest_root']
-    )
-
-    for item in manifest['file_list']:
-        dest_full_path = os.path.join(manifest_root_path, item['path'])
-
-        if not os.path.exists(dest_full_path):
-
-            dest_path, dest_filename = os.path.split(dest_full_path)
-
-            if len(dest_path):
-                mkdir_parents(dest_path)
-
-            block_blob_service.get_blob_to_path(
-                uuid,
-                item['hash'],
-                dest_full_path
-            )
-
-    block_blob_service.get_blob_to_path(
-        uuid,
-        'README.yml',
-        os.path.join(dataset_root_path, admin_metadata['readme_path'])
-    )
+    local_dataset.update_manifest()

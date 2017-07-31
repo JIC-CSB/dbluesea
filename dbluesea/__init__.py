@@ -116,6 +116,16 @@ class AzureDataSet(object):
         return dataset
 
     @property
+    def readme(self):
+
+        readme_blob = self.block_blob_service.get_blob_to_text(
+            self.uuid,
+            'README.yml'
+        )
+
+        return readme_blob.content
+
+    @property
     def manifest(self):
 
         if self._manifest is None:
