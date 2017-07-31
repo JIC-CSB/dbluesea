@@ -55,6 +55,7 @@ class AzureDataSet(object):
             "overlays_path": os.path.join(".dtool", "overlays"),
             "manifest_root": "data",
             "name": name,
+            "type": "dataset"
         }
 
         self.local_cache_path = AZURECACHE
@@ -151,13 +152,13 @@ class AzureDataSet(object):
         self.store_manifest()
 
     def store_manifest(self):
-        lease = self.block_blob_service.acquire_container_lease(self.uuid, 15)
+        # lease = self.block_blob_service.acquire_container_lease(self.uuid, 15)
         res = self.block_blob_service.create_blob_from_text(
             self.uuid,
             'manifest',
             json.dumps(self.manifest)
         )
-        self.block_blob_service.break_container_lease(self.uuid)
+        # self.block_blob_service.break_container_lease(self.uuid)
 
     def item_from_identifier(self, identifier):
         """Return an item of a dataset based on it's identifier.
