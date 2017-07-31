@@ -95,41 +95,20 @@ def putoverlays(dataset_path):
 def put(dataset_path):
     dataset = DataSet.from_path(dataset_path)
 
-    block_blob_service = BlockBlobService(
-        account_name=config.STORAGE_ACCOUNT_NAME,
-        account_key=config.STORAGE_ACCOUNT_KEY
-    )
+    remote_dataset = AzureDataSet(dataset.name)
+    remote_dataset._admin_metadata = dataset._admin_metadata
 
-    block_blob_service.create_container(dataset.uuid)
-    block_blob_service.set_container_metadata(
-        dataset.uuid,
-        dataset._admin_metadata
-    )
-
-    block_blob_service.create_blob_from_text(
-        dataset.uuid,
-        'dtool',
-        json.dumps(dataset._admin_metadata))
-
-    block_blob_service.create_blob_from_text(
-        dataset.uuid,
-        'manifest',
-        json.dumps(dataset.manifest)
-    )
-
-    block_blob_service.create_blob_from_path(
-        dataset.uuid,
-        'README.yml',
-        dataset.abs_readme_path
-    )
+    with open(dataset.abs_readme_path) as fh:
+        remote_dataset.persist_to_azure(readme=fh.read())
 
     for identifier in dataset.identifiers:
-        if not block_blob_service.exists(dataset.uuid, identifier):
-            block_blob_service.create_blob_from_path(
-                dataset.uuid,
-                identifier,
-                dataset.abspath_from_identifier(identifier)
-            )
+        path = dataset.item_from_identifier(identifier)['path']
+        remote_dataset.put_from_local_path(
+            dataset.abspath_from_identifier(identifier),
+            path
+        )
+
+    remote_dataset.update_manifest()
 
 
 @cli.command()
