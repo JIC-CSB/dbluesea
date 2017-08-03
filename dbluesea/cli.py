@@ -38,6 +38,8 @@ def cli():
 @cli.command()
 @click.argument('name')
 def new(name):
+    """Create a new empty remote dataset."""
+
     dataset = AzureDataSet(name)
     dataset.persist_to_azure()
     print(dataset.uuid)
@@ -46,6 +48,8 @@ def new(name):
 @cli.command()
 @click.argument('uuid')
 def update(uuid):
+    """Update manifest in existing dataset."""
+
     dataset = AzureDataSet.from_uuid(uuid)
     print('Updating: {}'.format(uuid))
     dataset.update_manifest()
@@ -53,6 +57,8 @@ def update(uuid):
 
 @cli.command()
 def list():
+    """List available datasets."""
+
     block_blob_service = BlockBlobService(
         account_name=config.STORAGE_ACCOUNT_NAME,
         account_key=config.STORAGE_ACCOUNT_KEY
@@ -67,6 +73,7 @@ def list():
 @cli.command()
 @click.argument('dataset_path', type=click.Path(exists=True))
 def putoverlays(dataset_path):
+    """Put dataset overlays."""
 
     block_blob_service = BlockBlobService(
         account_name=config.STORAGE_ACCOUNT_NAME,
@@ -93,6 +100,8 @@ def putoverlays(dataset_path):
 @cli.command()
 @click.argument('dataset_path', type=click.Path(exists=True))
 def put(dataset_path):
+    """Put dataset from local to remote."""
+
     dataset = DataSet.from_path(dataset_path)
 
     remote_dataset = AzureDataSet(dataset.name)
@@ -114,6 +123,7 @@ def put(dataset_path):
 @cli.command()
 @click.argument("uuid")
 def show(uuid):
+    """Show contents of dataset."""
 
     block_blob_service = BlockBlobService(
         account_name=config.STORAGE_ACCOUNT_NAME,
@@ -137,6 +147,7 @@ def show(uuid):
 @cli.command()
 @click.argument("uuid")
 def get(uuid):
+    """Get dataset from remote to local."""
 
     dataset = AzureDataSet.from_uuid(uuid)
 
@@ -170,8 +181,7 @@ def get(uuid):
 @click.argument("uuid")
 @click.argument("identifier")
 def fetch(uuid, identifier):
-    """Fetch the item with the given identifier from the Azure dataset with
-    the given UUID. The item will be written to the current directory."""
+    """Fetch the item with the given identifier."""
 
     dataset = AzureDataSet.from_uuid(uuid)
 
@@ -198,6 +208,7 @@ def rm(uuid):
 @cli.command()
 @click.argument("uuid")
 def open(uuid):
+    """Make dataset publically accessible"""
 
     block_blob_service = BlockBlobService(
         account_name=config.STORAGE_ACCOUNT_NAME,
