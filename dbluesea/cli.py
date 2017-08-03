@@ -112,10 +112,7 @@ def put(dataset_path):
 
 
 @cli.command()
-@click.argument(
-    "uuid",
-    default="4b4f06cc-72b9-4487-803f-6c5ac269af5e"
-)
+@click.argument("uuid")
 def show(uuid):
 
     block_blob_service = BlockBlobService(
@@ -196,3 +193,20 @@ def rm(uuid):
     )
 
     block_blob_service.delete_container(uuid)
+
+
+@cli.command()
+@click.argument("uuid")
+def open(uuid):
+
+    block_blob_service = BlockBlobService(
+        account_name=config.STORAGE_ACCOUNT_NAME,
+        account_key=config.STORAGE_ACCOUNT_KEY
+    )
+
+    from azure.storage.blob import PublicAccess
+
+    block_blob_service.set_container_acl(
+        uuid,
+        public_access=PublicAccess.Container
+    )
