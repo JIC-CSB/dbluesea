@@ -13,7 +13,7 @@ import dbluesea.config as config
 __version__ = "0.1.0"
 
 
-AZURECACHE = '/Users/hartleym/azurecache'
+AZURECACHE = os.path.expanduser('~/azurecache')
 
 
 def hashsum(hasher, filename):
@@ -149,7 +149,9 @@ class AzureDataSet(object):
             if 'path' in metadata:
                 new_entry = {
                     'hash': blob.name,
-                    'path': metadata['path']
+                    'path': metadata['path'],
+                    'size': blob.properties.content_length
+
                 }
                 file_list.append(new_entry)
 
@@ -162,13 +164,11 @@ class AzureDataSet(object):
         self.store_manifest()
 
     def store_manifest(self):
-        # lease = self.block_blob_service.acquire_container_lease(self.uuid, 15)
         res = self.block_blob_service.create_blob_from_text(
             self.uuid,
             'manifest',
             json.dumps(self.manifest)
         )
-        # self.block_blob_service.break_container_lease(self.uuid)
 
     def item_from_identifier(self, identifier):
         """Return an item of a dataset based on it's identifier.

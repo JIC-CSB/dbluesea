@@ -125,13 +125,16 @@ def show(uuid):
 
     generator = block_blob_service.list_blobs(uuid, include='metadata')
     for blob in generator:
-        metadata = blob.metadata
-        if 'path' in metadata:
-            path = metadata['path']
+        if 'path' in blob.metadata:
+            path = blob.metadata['path']
         else:
             path = ""
 
-        print("{} {}".format(blob.name, path))
+        print("{} {} {}".format(
+            blob.name,
+            path,
+            blob.properties.content_length
+        ))
 
 
 @cli.command()
@@ -164,3 +167,32 @@ def get(uuid):
         dataset.stage_to_local_path(identifier, dest_abspath)
 
     local_dataset.update_manifest()
+
+
+@cli.command()
+@click.argument("uuid")
+@click.argument("identifier")
+def fetch(uuid, identifier):
+    """Fetch the item with the given identifier from the Azure dataset with
+    the given UUID. The item will be written to the current directory."""
+
+    dataset = AzureDataSet.from_uuid(uuid)
+
+    path = dataset.item_from_identifier(identifier)["path"]
+
+    filename = os.path.basename(path)
+
+    dataset.stage_to_local_path(identifier, filename)
+
+
+@cli.command()
+@click.argument("uuid")
+def rm(uuid):
+    """Remove the Azure dataset with the given UUID."""
+
+    block_blob_service = BlockBlobService(
+        account_name=config.STORAGE_ACCOUNT_NAME,
+        account_key=config.STORAGE_ACCOUNT_KEY
+    )
+
+    block_blob_service.delete_container(uuid)
