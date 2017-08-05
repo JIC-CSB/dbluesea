@@ -37,12 +37,21 @@ def cli():
 
 @cli.command()
 @click.argument('name')
-def new(name):
+def create(name):
     """Create a new empty remote dataset."""
 
     dataset = AzureDataSet(name)
     dataset.persist_to_azure()
     print(dataset.uuid)
+
+
+@cli.command()
+@click.argument('uuid')
+def manifest(uuid):
+    """Show manifest."""
+
+    dataset = AzureDataSet.from_uuid(uuid)
+    print(dataset.manifest)
 
 
 @cli.command()
@@ -144,6 +153,30 @@ def show(uuid):
         ))
 
 
+# @cli.command()
+# @click.argument("uuid")
+# def sync(uuid):
+#     """Sync dataset from remote to local."""
+
+#     dataset = AzureDataSet.from_uuid(uuid)
+
+#     local_dest_path = os.path.abspath(dataset.name)
+
+#     try:
+#         os.mkdir(local_dest_path)
+#     except OSError as exc:
+#         if exc.errno == errno.EEXIST:
+#             pass
+#         else:
+#             raise
+
+#     local_dataset = DataSet(dataset.name)
+#     local_dataset._admin_metadata = dataset._admin_metadata
+#     local_dataset.persist_to_path(local_dest_path)
+
+#     open(local_dataset.abs_readme_path)
+
+
 @cli.command()
 @click.argument("uuid")
 def get(uuid):
@@ -207,7 +240,7 @@ def rm(uuid):
 
 @cli.command()
 @click.argument("uuid")
-def open(uuid):
+def makeopen(uuid):
     """Make dataset publically accessible"""
 
     block_blob_service = BlockBlobService(

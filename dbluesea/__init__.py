@@ -209,7 +209,6 @@ class AzureDataSet(object):
 
         return cache_path
 
-
     def access_overlay(self, overlay_name):
 
         overlay_filename = overlay_name + '.json'
@@ -220,7 +219,6 @@ class AzureDataSet(object):
         )
 
         return json.loads(raw_overlay.content)
-
 
     def put_from_local_path(self, local_path, path):
         # path is the path metadata that will be attached to the file. This
