@@ -47,6 +47,28 @@ def create(name):
 
 @cli.command()
 @click.argument('uuid')
+def fix(uuid):
+    """Fix a dataset with broken path metadata."""
+
+    block_blob_service = BlockBlobService(
+        account_name=config.STORAGE_ACCOUNT_NAME,
+        account_key=config.STORAGE_ACCOUNT_KEY
+    )
+
+    dataset = AzureDataSet.from_uuid(uuid)
+    manifest = dataset.manifest
+
+    for item in manifest["file_list"]:
+        print(item["hash"], item["path"])
+        block_blob_service.set_blob_metadata(
+            container_name=uuid,
+            blob_name=item["hash"],
+            metadata={"path": item["path"]}
+        )
+
+
+@cli.command()
+@click.argument('uuid')
 def manifest(uuid):
     """Show manifest."""
 
